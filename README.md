@@ -1,12 +1,12 @@
 # Built-Environment Predictive Importance for Shared E-Bike Ridership
 
-This repository contains the analysis code for the study of built-environment relative-importance patterns in predicting realised HelloBike shared e-bike ridership across 36 Chinese cities.
+This repository contains the analysis code for the study of built-environment relative-importance patterns in predicting realised shared e-bike ridership across 36 Chinese cities.
 
-The code is organised to reproduce the main computational workflow described in the manuscript: trip cleaning, 500 m hexagonal grid construction, built-environment variable calculation, city-specific ensemble model training, SHAP interpretation, robustness diagnostics, and PCA/K-Means++ clustering.
+The code is organised to reproduce the main computational workflow described in the manuscript: trip cleaning, hexagonal grid construction, built-environment variable calculation, city-specific ensemble model training, SHAP interpretation, robustness diagnostics, and PCA/K-Means++ clustering.
 
 ## Data Availability and Restrictions
 
-The repository contains code only. It does not contain raw HelloBike records, local file paths, credentials, or proprietary input data. The raw HelloBike trip records are not publicly shared because access is restricted by the data-use agreement. Non-HelloBike spatial datasets should be obtained from their original providers subject to their terms of use. These include POI data, OpenStreetMap-derived cycling network data, WorldPop population data, and administrative boundary data.
+The repository contains code only. It does not contain raw shared e-bike trip records, local file paths, credentials, or proprietary input data. The raw sahred e-bike trip records are not publicly shared because access is restricted by the data-use agreement. Other spatial datasets should be obtained from their original providers subject to their terms of use. These include POI data, OpenStreetMap-derived cycling network data, WorldPop population data, and administrative boundary data.
 
 ## Repository Structure
 
