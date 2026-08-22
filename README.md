@@ -1,12 +1,12 @@
 # Built-Environment Predictive Importance for Shared E-Bike Ridership
 
-This repository contains the analysis code for the study of built-environment relative-importance patterns in predicting realised shared e-bike ridership across 36 Chinese cities.
+This repository contains the analysis code for the study of built-environment relative-importance patterns in predicting shared e-bike ridership across 36 Chinese cities.
 
-The code is organised to reproduce the main computational workflow described in the manuscript: trip cleaning, hexagonal grid construction, built-environment variable calculation, city-specific ensemble model training, SHAP interpretation, robustness diagnostics, and PCA/K-Means++ clustering.
+The code is organised to reproduce the main computational workflow described in the manuscript: trip cleaning, 500 m hexagonal grid construction, built-environment variable calculation, city-specific ensemble model training, SHAP interpretation, ALE-based directional diagnostics, robustness diagnostics, and PCA/K-Means++ clustering.
 
 ## Data Availability and Restrictions
 
-The repository contains code only. It does not contain raw shared e-bike trip records, local file paths, credentials, or proprietary input data. The raw sahred e-bike trip records are not publicly shared because access is restricted by the data-use agreement. Other spatial datasets should be obtained from their original providers subject to their terms of use. These include POI data, OpenStreetMap-derived cycling network data, WorldPop population data, and administrative boundary data.
+The repository contains code only. It does not contain raw HelloBike records, local file paths, credentials, or proprietary input data. The raw HelloBike trip records are not publicly shared because access is restricted by the data-use agreement. Non-HelloBike spatial datasets should be obtained from their original providers subject to their terms of use. These include POI data, OpenStreetMap-derived cycling network data, WorldPop population data, and administrative boundary data.
 
 ## Repository Structure
 
@@ -25,7 +25,8 @@ reproducibility_code/
     train_lightgbm.py
     select_optimal_models.py
   03_shap_analysis/
-    compute_relative_shap_and_direction.py
+    compute_relative_shap.py
+    compute_ale_direction.py
   04_robustness_diagnostics/
     predictor_correlation_diagnostics.py
     repeated_refit_shap_stability.py
@@ -61,7 +62,7 @@ The modelling scripts expect one processed grid-level CSV per city, with at leas
 | `REC` | Retail POI count |
 | `RC` | Residential POI count |
 | `EC` | Employment POI count |
-| `TSC` | Public transport stop count |
+| `TSC` | Transit station count |
 | `CLL` | Cycling road length |
 | `IC` | Intersection count |
 
@@ -141,12 +142,12 @@ python 02_model_training/select_optimal_models.py \
 
 The selected model is the model with the highest test-set `R2`, with test-set `RMSE` used as a secondary criterion.
 
-### 4. Compute SHAP Values and Directional Diagnostics
+### 4. Compute SHAP Values and ALE-Based Directional Diagnostics
 
-Use `03_shap_analysis/compute_relative_shap_and_direction.py` to compute normalised global SHAP values and SHAP-dependence direction diagnostics.
+Use `03_shap_analysis/compute_relative_shap.py` to compute normalised global SHAP values.
 
 ```bash
-python 03_shap_analysis/compute_relative_shap_and_direction.py \
+python 03_shap_analysis/compute_relative_shap.py \
   --input-dir outputs/processed \
   --selected-models outputs/model_training/selected_city_models.csv \
   --output-dir outputs/shap
@@ -154,7 +155,17 @@ python 03_shap_analysis/compute_relative_shap_and_direction.py \
 
 Relative SHAP values are calculated by normalising the mean absolute SHAP values across the ten built-environment variables within each city, so that the ten values sum to 1.
 
-For directionality, the script calculates Spearman's rank correlation between each predictor's observed grid-level values and its corresponding SHAP values. A variable is classified as positive or negative only when the correlation is statistically significant and `|rho_s| >= 0.10`.
+Use `03_shap_analysis/compute_ale_direction.py` to compute first-order accumulated local effects (ALE) and classify the direction of each city-variable relationship.
+
+```bash
+python 03_shap_analysis/compute_ale_direction.py \
+  --input-dir outputs/processed \
+  --selected-models outputs/model_training/selected_city_models.csv \
+  --output-dir outputs/ale_direction \
+  --save-plots
+```
+
+For each city, the ALE script keeps the selected optimal model type and tuned hyperparameters, refits this selected model specification on the effective city-level grid samples, and calculates first-order ALE curves for the ten built-environment variables. ALE intervals are formed by decile-based quantile bins by default. The overall direction is measured using the difference between the ALE value at the 90th percentile and the ALE value at the 10th percentile of the predictor, divided by the 10th-90th percentile spread of fitted ridership. A variable is classified as `Positive` or `Negative` only when this standardised ALE contrast is at least 0.05 in absolute value and at least 70% of non-negligible local ALE differences follow the same direction. Otherwise, it is classified as `Weak or non-monotonic`.
 
 ### 5. Run Robustness Diagnostics
 
@@ -210,6 +221,7 @@ The script standardises the ten-dimensional city-level SHAP vectors, applies PCA
 ## Notes on Reproducibility
 
 - The default random seed is 42 for the main model training and clustering steps.
+- ALE-based directional diagnostics use 10 quantile intervals by default. These bins can be changed with `--n-bins`, but the manuscript results use the default decile setting.
 - Repeated-refitting diagnostics use 30 random seeds by default, beginning at 1001.
 - The public code keeps model type and tuned hyperparameters fixed during repeated refitting. This is intended to isolate SHAP stability under the selected city-specific model specification, rather than introducing a new model-selection process in each repetition.
 - The pooled model includes city dummy variables to control for unobserved city-level heterogeneity. When pooled SHAP values are compared with city-specific relative SHAP values, the normalisation denominator should include only the ten built-environment variables.
